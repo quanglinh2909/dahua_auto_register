@@ -1,0 +1,39 @@
+package com.netsdk.lib.structure;
+import com.netsdk.lib.NetSDKLib;
+/**
+ * 人体历史库以图搜图回调信息
+*/
+public class NET_CB_RESULT_OF_HUMAN_HISTORY_BYPIC_EX extends NetSDKLib.SdkStructure
+{
+    /**
+     * 查询令牌
+    */
+    public int              nToken;
+    /**
+     * 查询进度百分比
+    */
+    public int              nProgress;
+    /**
+     * 满足条件的总条数
+    */
+    public int              nTotalCount;
+    /**
+     * 历史库以图搜图查询结果数量
+    */
+    public int              nHistoryResultNum;
+    /**
+     * 历史库以图搜图查询结果信息,参见结构体定义 {@link com.netsdk.lib.structure.NET_RESULT_OF_HUMANHISTORY_BYPIC_EX}
+    */
+    public NET_RESULT_OF_HUMANHISTORY_BYPIC_EX[] stuHistoryResult = new NET_RESULT_OF_HUMANHISTORY_BYPIC_EX[32];
+    /**
+     * 预留字节数
+    */
+    public byte[]           szReserved = new byte[1024];
+
+    public NET_CB_RESULT_OF_HUMAN_HISTORY_BYPIC_EX() {
+        for(int i = 0; i < stuHistoryResult.length; i++){
+            stuHistoryResult[i] = new NET_RESULT_OF_HUMANHISTORY_BYPIC_EX();
+        }
+    }
+}
+

@@ -1,0 +1,32 @@
+# Build output
+target/
+
+# IDE
+*.iml
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Java
+*.class
+*.jar
+*.war
+*.ear
+
+# Logs
+*.log
+hs_err_pid*
+core.*
+sdklog/
+
+# Database
+*.db
+
+# Gemini agent
+.gemini/

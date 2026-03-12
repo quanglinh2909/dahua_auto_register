@@ -1,0 +1,1243 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Camera Management Dashboard</title>
+    <meta name="description" content="Dahua Camera Management Dashboard - Monitor, control and stream cameras">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #0f1117;
+            --bg-secondary: #1a1d27;
+            --bg-card: rgba(26, 29, 39, 0.8);
+            --bg-card-hover: rgba(35, 39, 52, 0.9);
+            --border: rgba(255, 255, 255, 0.06);
+            --border-hover: rgba(255, 255, 255, 0.12);
+            --text-primary: #e8eaed;
+            --text-secondary: #9aa0a6;
+            --text-muted: #5f6368;
+            --accent: #8b5cf6;
+            --accent-light: #a78bfa;
+            --accent-bg: rgba(139, 92, 246, 0.12);
+            --green: #34d399;
+            --green-bg: rgba(52, 211, 153, 0.12);
+            --red: #f87171;
+            --red-bg: rgba(248, 113, 113, 0.12);
+            --orange: #fb923c;
+            --orange-bg: rgba(251, 146, 60, 0.12);
+            --blue: #60a5fa;
+            --blue-bg: rgba(96, 165, 250, 0.12);
+            --shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
+            --radius: 12px;
+            --radius-sm: 8px;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Background gradient */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: 
+                radial-gradient(ellipse at 20% 20%, rgba(139, 92, 246, 0.08) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 80%, rgba(96, 165, 250, 0.06) 0%, transparent 50%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* Header */
+        .header {
+            position: sticky; top: 0; z-index: 100;
+            background: rgba(15, 17, 23, 0.85);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border);
+            padding: 0 32px;
+            height: 64px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .logo {
+            width: 36px; height: 36px;
+            background: linear-gradient(135deg, var(--accent), var(--blue));
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+        }
+
+        .header h1 {
+            font-size: 18px;
+            font-weight: 600;
+            letter-spacing: -0.3px;
+        }
+
+        .header h1 span {
+            color: var(--text-secondary);
+            font-weight: 400;
+        }
+
+        .health-badge {
+            display: flex; align-items: center; gap: 8px;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        .health-badge.online {
+            background: var(--green-bg);
+            color: var(--green);
+        }
+
+        .health-badge.offline {
+            background: var(--red-bg);
+            color: var(--red);
+        }
+
+        .health-dot {
+            width: 8px; height: 8px;
+            border-radius: 50%;
+            animation: pulse-dot 2s ease-in-out infinite;
+        }
+
+        .health-badge.online .health-dot { background: var(--green); }
+        .health-badge.offline .health-dot { background: var(--red); }
+
+        @keyframes pulse-dot {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(0.8); }
+        }
+
+        /* Main content */
+        .main {
+            position: relative; z-index: 1;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 28px 32px 60px;
+        }
+
+        /* Stats cards */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+            margin-bottom: 28px;
+        }
+
+        .stat-card {
+            background: var(--bg-card);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 22px 24px;
+            transition: all 0.3s ease;
+        }
+
+        .stat-card:hover {
+            border-color: var(--border-hover);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow);
+        }
+
+        .stat-label {
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            margin-bottom: 10px;
+        }
+
+        .stat-value {
+            font-size: 32px;
+            font-weight: 700;
+            letter-spacing: -1px;
+        }
+
+        .stat-card.purple .stat-value { color: var(--accent-light); }
+        .stat-card.green .stat-value { color: var(--green); }
+        .stat-card.red .stat-value { color: var(--red); }
+        .stat-card.blue .stat-value { color: var(--blue); }
+
+        .stat-icon {
+            float: right;
+            width: 44px; height: 44px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+        }
+
+        .stat-card.purple .stat-icon { background: var(--accent-bg); }
+        .stat-card.green .stat-icon { background: var(--green-bg); }
+        .stat-card.red .stat-icon { background: var(--red-bg); }
+        .stat-card.blue .stat-icon { background: var(--blue-bg); }
+
+        /* Sections */
+        .section {
+            background: var(--bg-card);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            margin-bottom: 20px;
+            overflow: hidden;
+        }
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 18px 24px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .section-title {
+            font-size: 15px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .section-title .icon {
+            font-size: 18px;
+        }
+
+        /* Buttons */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 16px;
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--border);
+            background: transparent;
+            color: var(--text-primary);
+            font-family: inherit;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+        }
+
+        .btn:hover {
+            border-color: var(--border-hover);
+            background: var(--bg-card-hover);
+        }
+
+        .btn-primary {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--accent-light);
+            border-color: var(--accent-light);
+        }
+
+        .btn-success {
+            background: var(--green-bg);
+            border-color: rgba(52, 211, 153, 0.3);
+            color: var(--green);
+        }
+
+        .btn-success:hover {
+            background: rgba(52, 211, 153, 0.2);
+        }
+
+        .btn-danger {
+            background: var(--red-bg);
+            border-color: rgba(248, 113, 113, 0.3);
+            color: var(--red);
+        }
+
+        .btn-danger:hover {
+            background: rgba(248, 113, 113, 0.2);
+        }
+
+        .btn-warning {
+            background: var(--orange-bg);
+            border-color: rgba(251, 146, 60, 0.3);
+            color: var(--orange);
+        }
+
+        .btn-warning:hover {
+            background: rgba(251, 146, 60, 0.2);
+        }
+
+        .btn-blue {
+            background: var(--blue-bg);
+            border-color: rgba(96, 165, 250, 0.3);
+            color: var(--blue);
+        }
+
+        .btn-blue:hover {
+            background: rgba(96, 165, 250, 0.2);
+        }
+
+        .btn-sm {
+            padding: 5px 10px;
+            font-size: 12px;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 6px;
+        }
+
+        /* Table */
+        .table-wrap {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            padding: 12px 24px;
+            text-align: left;
+            font-size: 13px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        th {
+            color: var(--text-secondary);
+            font-weight: 500;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            background: rgba(0, 0, 0, 0.2);
+        }
+
+        tr:hover td {
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        /* Status badge */
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .status-badge.online {
+            background: var(--green-bg);
+            color: var(--green);
+        }
+
+        .status-badge.offline {
+            background: rgba(107, 114, 128, 0.15);
+            color: #9ca3af;
+        }
+
+        .status-badge.streaming {
+            background: var(--blue-bg);
+            color: var(--blue);
+        }
+
+        .status-dot {
+            width: 6px; height: 6px;
+            border-radius: 50%;
+        }
+
+        .status-badge.online .status-dot { background: var(--green); }
+        .status-badge.offline .status-dot { background: #6b7280; }
+        .status-badge.streaming .status-dot {
+            background: var(--blue);
+            animation: pulse-dot 1.5s ease-in-out infinite;
+        }
+
+        /* Modal */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(4px);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            width: 480px;
+            max-width: 95vw;
+            box-shadow: 0 24px 80px rgba(0, 0, 0, 0.5);
+            animation: modal-in 0.25s ease-out;
+        }
+
+        @keyframes modal-in {
+            from { opacity: 0; transform: scale(0.95) translateY(10px); }
+            to { opacity: 1; transform: scale(1) translateY(0); }
+        }
+
+        .modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .modal-header h2 {
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 20px;
+            cursor: pointer;
+            padding: 4px;
+            line-height: 1;
+        }
+
+        .modal-close:hover { color: var(--text-primary); }
+
+        .modal-body { padding: 24px; }
+        .modal-footer {
+            padding: 16px 24px;
+            border-top: 1px solid var(--border);
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+
+        /* Form */
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            margin-bottom: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 10px 14px;
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--border);
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            font-family: inherit;
+            font-size: 14px;
+            transition: border-color 0.2s;
+        }
+
+        .form-group input:focus, .form-group select:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        .form-group input::placeholder {
+            color: var(--text-muted);
+        }
+
+        /* Toast notification */
+        .toast-container {
+            position: fixed;
+            top: 80px;
+            right: 24px;
+            z-index: 2000;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .toast {
+            padding: 12px 20px;
+            border-radius: var(--radius-sm);
+            font-size: 13px;
+            font-weight: 500;
+            color: white;
+            min-width: 280px;
+            box-shadow: var(--shadow);
+            animation: toast-in 0.3s ease-out;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .toast.success { background: linear-gradient(135deg, #059669, #10b981); }
+        .toast.error { background: linear-gradient(135deg, #dc2626, #ef4444); }
+        .toast.info { background: linear-gradient(135deg, #2563eb, #3b82f6); }
+
+        @keyframes toast-in {
+            from { opacity: 0; transform: translateX(60px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        /* Empty state */
+        .empty-state {
+            text-align: center;
+            padding: 48px 24px;
+            color: var(--text-secondary);
+        }
+
+        .empty-state .icon { font-size: 40px; margin-bottom: 12px; }
+        .empty-state p { font-size: 14px; }
+
+        /* Loading spinner */
+        .spinner {
+            display: inline-block;
+            width: 16px; height: 16px;
+            border: 2px solid var(--border);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 0.7s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Responsive */
+        @media (max-width: 900px) {
+            .stats-grid { grid-template-columns: repeat(2, 1fr); }
+            .main { padding: 16px; }
+            .header { padding: 0 16px; }
+            th, td { padding: 10px 14px; }
+        }
+
+        @media (max-width: 600px) {
+            .stats-grid { grid-template-columns: 1fr; }
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: var(--text-muted); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--text-secondary); }
+
+        /* RTSP copy button */
+        .rtsp-url {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(0,0,0,0.3);
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            color: var(--blue);
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .rtsp-url:hover {
+            background: rgba(0,0,0,0.5);
+        }
+
+        .enabled-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 500;
+        }
+
+        .enabled-badge.yes {
+            background: var(--green-bg);
+            color: var(--green);
+        }
+
+        .enabled-badge.no {
+            background: var(--red-bg);
+            color: var(--red);
+        }
+
+        /* Tabs */
+        .tabs {
+            display: flex;
+            gap: 0;
+            margin-bottom: 20px;
+            border-radius: var(--radius);
+            overflow: hidden;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            width: fit-content;
+        }
+
+        .tab-btn {
+            padding: 10px 22px;
+            font-family: inherit;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s;
+            border-right: 1px solid var(--border);
+        }
+
+        .tab-btn:last-child { border-right: none; }
+
+        .tab-btn:hover {
+            color: var(--text-primary);
+            background: rgba(255,255,255,0.03);
+        }
+
+        .tab-btn.active {
+            color: var(--accent-light);
+            background: var(--accent-bg);
+        }
+
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+    </style>
+</head>
+<body>
+
+<!-- Header -->
+<header class="header">
+    <div class="header-left">
+        <div class="logo">📹</div>
+        <h1>Camera Dashboard <span>/ Dahua NetSDK</span></h1>
+    </div>
+    <div id="healthBadge" class="health-badge offline">
+        <span class="health-dot"></span>
+        <span id="healthText">Đang kết nối...</span>
+    </div>
+</header>
+
+<!-- Main -->
+<main class="main">
+    <!-- Stats -->
+    <div class="stats-grid">
+        <div class="stat-card purple">
+            <div class="stat-icon">📷</div>
+            <div class="stat-label">Tổng Camera</div>
+            <div class="stat-value" id="statTotal">0</div>
+        </div>
+        <div class="stat-card green">
+            <div class="stat-icon">🟢</div>
+            <div class="stat-label">Online</div>
+            <div class="stat-value" id="statOnline">0</div>
+        </div>
+        <div class="stat-card red">
+            <div class="stat-icon">🔴</div>
+            <div class="stat-label">Offline</div>
+            <div class="stat-value" id="statOffline">0</div>
+        </div>
+        <div class="stat-card blue">
+            <div class="stat-icon">📡</div>
+            <div class="stat-label">Đang Stream</div>
+            <div class="stat-value" id="statStreams">0</div>
+        </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs">
+        <button class="tab-btn active" data-tab="cameras">📷 Camera</button>
+        <button class="tab-btn" data-tab="streams">📡 Streams</button>
+        <button class="tab-btn" data-tab="p2p">🔗 P2P</button>
+    </div>
+
+    <!-- Camera Tab -->
+    <div id="tab-cameras" class="tab-content active">
+        <div class="section">
+            <div class="section-header">
+                <div class="section-title">
+                    <span class="icon">📷</span>
+                    Quản lý Camera
+                </div>
+                <button class="btn btn-primary" onclick="openAddModal()">+ Thêm Camera</button>
+            </div>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Device ID</th>
+                            <th>Username</th>
+                            <th>Mô tả</th>
+                            <th>Trạng thái</th>
+                            <th>Enabled</th>
+                            <th>Ngày tạo</th>
+                            <th>Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody id="camerasTableBody">
+                        <tr><td colspan="8"><div class="empty-state"><div class="icon">📷</div><p>Đang tải dữ liệu...</p></div></td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Streams Tab -->
+    <div id="tab-streams" class="tab-content">
+        <div class="section">
+            <div class="section-header">
+                <div class="section-title">
+                    <span class="icon">📡</span>
+                    Active RTSP Streams
+                </div>
+                <button class="btn" onclick="refreshStreams()">🔄 Refresh</button>
+            </div>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Device ID</th>
+                            <th>RTSP URL</th>
+                            <th>Trạng thái</th>
+                            <th>Data</th>
+                            <th>Restarts</th>
+                            <th>Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody id="streamsTableBody">
+                        <tr><td colspan="6"><div class="empty-state"><div class="icon">📡</div><p>Chưa có stream nào đang hoạt động</p></div></td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- P2P Tab -->
+    <div id="tab-p2p" class="tab-content">
+        <div class="section">
+            <div class="section-header">
+                <div class="section-title">
+                    <span class="icon">🔗</span>
+                    Kết nối P2P
+                </div>
+            </div>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Device ID</th>
+                            <th>Trạng thái kết nối</th>
+                            <th>Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody id="p2pTableBody">
+                        <tr><td colspan="3"><div class="empty-state"><div class="icon">🔗</div><p>Thêm camera trước để sử dụng P2P</p></div></td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</main>
+
+<!-- Add/Edit Camera Modal -->
+<div id="cameraModal" class="modal-overlay">
+    <div class="modal">
+        <div class="modal-header">
+            <h2 id="modalTitle">Thêm Camera</h2>
+            <button class="modal-close" onclick="closeModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <input type="hidden" id="editCameraId">
+            <div class="form-group">
+                <label>Device ID / Serial Number *</label>
+                <input type="text" id="inputDeviceId" placeholder="VD: 9D0B457PAG925CA">
+            </div>
+            <div class="form-group">
+                <label>Username</label>
+                <input type="text" id="inputUsername" placeholder="admin" value="admin">
+            </div>
+            <div class="form-group">
+                <label>Password *</label>
+                <input type="password" id="inputPassword" placeholder="Nhập mật khẩu camera">
+            </div>
+            <div class="form-group">
+                <label>Mô tả</label>
+                <input type="text" id="inputDescription" placeholder="VD: Camera cổng chính">
+            </div>
+            <div class="form-group">
+                <label>Enabled</label>
+                <select id="inputEnabled">
+                    <option value="true">Có</option>
+                    <option value="false">Không</option>
+                </select>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn" onclick="closeModal()">Hủy</button>
+            <button class="btn btn-primary" id="modalSaveBtn" onclick="saveCamera()">Lưu</button>
+        </div>
+    </div>
+</div>
+
+<!-- Toast container -->
+<div class="toast-container" id="toastContainer"></div>
+
+<script>
+    // ==================== CONFIG ====================
+    const API_BASE = window.location.origin;
+    const REFRESH_INTERVAL = 5000;
+
+    // ==================== STATE ====================
+    let cameras = [];
+    let connectedDeviceIds = [];
+    let streams = [];
+    let isServerOnline = false;
+
+    // ==================== TABS ====================
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            btn.classList.add('active');
+            document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+        });
+    });
+
+    // ==================== API CALLS ====================
+    async function apiGet(endpoint) {
+        const res = await fetch(API_BASE + endpoint);
+        return await res.json();
+    }
+
+    async function apiPost(endpoint, body) {
+        const res = await fetch(API_BASE + endpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+        });
+        return { status: res.status, data: await res.json() };
+    }
+
+    async function apiPut(endpoint, body) {
+        const res = await fetch(API_BASE + endpoint, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+        });
+        return { status: res.status, data: await res.json() };
+    }
+
+    async function apiDelete(endpoint) {
+        const res = await fetch(API_BASE + endpoint, { method: 'DELETE' });
+        return { status: res.status, data: await res.json() };
+    }
+
+    // ==================== DATA LOADING ====================
+    async function loadAll() {
+        try {
+            // Parallel fetch
+            const [camsRes, statusRes, streamsRes, healthRes] = await Promise.allSettled([
+                apiGet('/api/cameras'),
+                apiGet('/api/cameras/status'),
+                apiGet('/api/streams'),
+                apiGet('/api/health')
+            ]);
+
+            if (camsRes.status === 'fulfilled') cameras = camsRes.value;
+            if (statusRes.status === 'fulfilled') connectedDeviceIds = statusRes.value.connectedDevices || [];
+            if (streamsRes.status === 'fulfilled') streams = streamsRes.value;
+            
+            isServerOnline = healthRes.status === 'fulfilled' && healthRes.value.status === 'ok';
+
+            updateUI();
+        } catch (e) {
+            isServerOnline = false;
+            updateHealthBadge();
+        }
+    }
+
+    // ==================== UI UPDATES ====================
+    function updateUI() {
+        updateHealthBadge();
+        updateStats();
+        renderCamerasTable();
+        renderStreamsTable();
+        renderP2PTable();
+    }
+
+    function updateHealthBadge() {
+        const badge = document.getElementById('healthBadge');
+        const text = document.getElementById('healthText');
+        if (isServerOnline) {
+            badge.className = 'health-badge online';
+            text.textContent = 'Server Online';
+        } else {
+            badge.className = 'health-badge offline';
+            text.textContent = 'Server Offline';
+        }
+    }
+
+    function updateStats() {
+        const total = cameras.length;
+        const online = cameras.filter(c => connectedDeviceIds.includes(c.deviceId)).length;
+        const offline = total - online;
+        const activeStreams = streams.length;
+
+        animateValue('statTotal', total);
+        animateValue('statOnline', online);
+        animateValue('statOffline', offline);
+        animateValue('statStreams', activeStreams);
+    }
+
+    function animateValue(id, newValue) {
+        const el = document.getElementById(id);
+        const current = parseInt(el.textContent) || 0;
+        if (current !== newValue) {
+            el.textContent = newValue;
+            el.style.transform = 'scale(1.1)';
+            setTimeout(() => el.style.transform = 'scale(1)', 200);
+        }
+    }
+
+    // ==================== CAMERAS TABLE ====================
+    function renderCamerasTable() {
+        const tbody = document.getElementById('camerasTableBody');
+        
+        if (cameras.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="8"><div class="empty-state"><div class="icon">📷</div><p>Chưa có camera nào. Bấm "Thêm Camera" để bắt đầu.</p></div></td></tr>';
+            return;
+        }
+
+        tbody.innerHTML = cameras.map(cam => {
+            const isOnline = connectedDeviceIds.includes(cam.deviceId);
+            const isStreaming = streams.some(s => s.deviceId === cam.deviceId);
+            let statusBadge;
+            if (isStreaming) {
+                statusBadge = '<span class="status-badge streaming"><span class="status-dot"></span>Streaming</span>';
+            } else if (isOnline) {
+                statusBadge = '<span class="status-badge online"><span class="status-dot"></span>Online</span>';
+            } else {
+                statusBadge = '<span class="status-badge offline"><span class="status-dot"></span>Offline</span>';
+            }
+
+            const enabledBadge = cam.enabled 
+                ? '<span class="enabled-badge yes">✓ Có</span>'
+                : '<span class="enabled-badge no">✗ Không</span>';
+
+            return `<tr>
+                <td><strong>#${cam.id}</strong></td>
+                <td><code style="color:var(--accent-light)">${esc(cam.deviceId)}</code></td>
+                <td>${esc(cam.username)}</td>
+                <td>${esc(cam.description || '—')}</td>
+                <td>${statusBadge}</td>
+                <td>${enabledBadge}</td>
+                <td style="color:var(--text-secondary);font-size:12px">${cam.createdAt || '—'}</td>
+                <td>
+                    <div class="btn-group">
+                        ${isOnline && !isStreaming ? `<button class="btn btn-sm btn-success" onclick="startStream('${esc(cam.deviceId)}')">▶ Stream</button>` : ''}
+                        ${isStreaming ? `<button class="btn btn-sm btn-warning" onclick="stopStream('${esc(cam.deviceId)}')">⏹ Stop</button>` : ''}
+                        <button class="btn btn-sm btn-blue" onclick="editCamera(${cam.id})">✏️</button>
+                        <button class="btn btn-sm btn-danger" onclick="deleteCamera(${cam.id}, '${esc(cam.deviceId)}')">🗑️</button>
+                    </div>
+                </td>
+            </tr>`;
+        }).join('');
+    }
+
+    // ==================== STREAMS TABLE ====================
+    function renderStreamsTable() {
+        const tbody = document.getElementById('streamsTableBody');
+        
+        if (streams.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="6"><div class="empty-state"><div class="icon">📡</div><p>Chưa có stream nào đang hoạt động</p></div></td></tr>';
+            return;
+        }
+
+        tbody.innerHTML = streams.map(s => {
+            const dataMB = (s.bytesWritten / (1024 * 1024)).toFixed(2);
+            return `<tr>
+                <td><code style="color:var(--accent-light)">${esc(s.deviceId)}</code></td>
+                <td><span class="rtsp-url" onclick="copyToClipboard('${esc(s.rtspUrl)}')">📋 ${esc(s.rtspUrl)}</span></td>
+                <td>${s.isRunning 
+                    ? '<span class="status-badge streaming"><span class="status-dot"></span>Running</span>' 
+                    : '<span class="status-badge offline"><span class="status-dot"></span>Stopped</span>'
+                }</td>
+                <td>${dataMB} MB</td>
+                <td>${s.restarts}</td>
+                <td>
+                    <button class="btn btn-sm btn-danger" onclick="stopStream('${esc(s.deviceId)}')">⏹ Stop</button>
+                </td>
+            </tr>`;
+        }).join('');
+    }
+
+    // ==================== P2P TABLE ====================
+    function renderP2PTable() {
+        const tbody = document.getElementById('p2pTableBody');
+        
+        if (cameras.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="3"><div class="empty-state"><div class="icon">🔗</div><p>Thêm camera trước để sử dụng P2P</p></div></td></tr>';
+            return;
+        }
+
+        tbody.innerHTML = cameras.map(cam => {
+            const isConnected = connectedDeviceIds.includes(cam.deviceId);
+            const statusBadge = isConnected 
+                ? '<span class="status-badge online"><span class="status-dot"></span>Đã kết nối</span>'
+                : '<span class="status-badge offline"><span class="status-dot"></span>Chưa kết nối</span>';
+
+            return `<tr>
+                <td><code style="color:var(--accent-light)">${esc(cam.deviceId)}</code></td>
+                <td>${statusBadge}</td>
+                <td>
+                    <div class="btn-group">
+                        ${!isConnected 
+                            ? `<button class="btn btn-sm btn-success" onclick="connectP2P('${esc(cam.deviceId)}')">🔗 Kết nối P2P</button>`
+                            : `<button class="btn btn-sm btn-danger" onclick="disconnectP2P('${esc(cam.deviceId)}')">❌ Ngắt kết nối</button>`
+                        }
+                    </div>
+                </td>
+            </tr>`;
+        }).join('');
+    }
+
+    // ==================== CAMERA CRUD ====================
+    function openAddModal() {
+        document.getElementById('modalTitle').textContent = 'Thêm Camera';
+        document.getElementById('editCameraId').value = '';
+        document.getElementById('inputDeviceId').value = '';
+        document.getElementById('inputDeviceId').disabled = false;
+        document.getElementById('inputUsername').value = 'admin';
+        document.getElementById('inputPassword').value = '';
+        document.getElementById('inputDescription').value = '';
+        document.getElementById('inputEnabled').value = 'true';
+        document.getElementById('cameraModal').classList.add('active');
+    }
+
+    function editCamera(id) {
+        const cam = cameras.find(c => c.id === id);
+        if (!cam) return;
+        
+        document.getElementById('modalTitle').textContent = 'Sửa Camera #' + id;
+        document.getElementById('editCameraId').value = id;
+        document.getElementById('inputDeviceId').value = cam.deviceId;
+        document.getElementById('inputDeviceId').disabled = true;
+        document.getElementById('inputUsername').value = cam.username;
+        document.getElementById('inputPassword').value = '';
+        document.getElementById('inputDescription').value = cam.description || '';
+        document.getElementById('inputEnabled').value = cam.enabled ? 'true' : 'false';
+        document.getElementById('cameraModal').classList.add('active');
+    }
+
+    function closeModal() {
+        document.getElementById('cameraModal').classList.remove('active');
+    }
+
+    async function saveCamera() {
+        const id = document.getElementById('editCameraId').value;
+        const deviceId = document.getElementById('inputDeviceId').value.trim();
+        const username = document.getElementById('inputUsername').value.trim();
+        const password = document.getElementById('inputPassword').value;
+        const description = document.getElementById('inputDescription').value.trim();
+        const enabled = document.getElementById('inputEnabled').value === 'true';
+
+        if (!deviceId) { showToast('Vui lòng nhập Device ID', 'error'); return; }
+
+        const body = { deviceId, username: username || 'admin', password, description, enabled };
+
+        try {
+            let result;
+            if (id) {
+                // Update
+                result = await apiPut('/api/cameras/' + id, body);
+                if (result.status === 200) {
+                    showToast('Cập nhật camera thành công!', 'success');
+                } else {
+                    showToast(result.data.error || 'Lỗi cập nhật', 'error');
+                    return;
+                }
+            } else {
+                // Create
+                if (!password) { showToast('Vui lòng nhập mật khẩu', 'error'); return; }
+                result = await apiPost('/api/cameras', body);
+                if (result.status === 201) {
+                    showToast('Thêm camera thành công!', 'success');
+                } else {
+                    showToast(result.data.error || 'Lỗi thêm camera', 'error');
+                    return;
+                }
+            }
+
+            closeModal();
+            await loadAll();
+        } catch (e) {
+            showToast('Lỗi kết nối server: ' + e.message, 'error');
+        }
+    }
+
+    async function deleteCamera(id, deviceId) {
+        if (!confirm(`Bạn có chắc muốn xóa camera "${deviceId}"?\nĐiều này sẽ ngắt kết nối và dừng stream (nếu có).`)) return;
+        
+        try {
+            const result = await apiDelete('/api/cameras/' + id);
+            if (result.status === 200) {
+                showToast('Đã xóa camera ' + deviceId, 'success');
+            } else {
+                showToast(result.data.error || 'Lỗi xóa camera', 'error');
+            }
+            await loadAll();
+        } catch (e) {
+            showToast('Lỗi: ' + e.message, 'error');
+        }
+    }
+
+    // ==================== STREAM CONTROLS ====================
+    async function startStream(deviceId) {
+        try {
+            showToast('Đang bắt đầu stream...', 'info');
+            const result = await apiPost('/api/streams/' + deviceId + '/start');
+            if (result.status === 200) {
+                showToast('Stream đã bắt đầu: ' + (result.data.rtspUrl || ''), 'success');
+            } else {
+                showToast(result.data.error || 'Lỗi start stream', 'error');
+            }
+            await loadAll();
+        } catch (e) {
+            showToast('Lỗi: ' + e.message, 'error');
+        }
+    }
+
+    async function stopStream(deviceId) {
+        try {
+            const result = await apiPost('/api/streams/' + deviceId + '/stop');
+            if (result.status === 200) {
+                showToast('Đã dừng stream ' + deviceId, 'success');
+            } else {
+                showToast(result.data.error || 'Lỗi stop stream', 'error');
+            }
+            await loadAll();
+        } catch (e) {
+            showToast('Lỗi: ' + e.message, 'error');
+        }
+    }
+
+    function refreshStreams() {
+        loadAll();
+        showToast('Đã refresh dữ liệu', 'info');
+    }
+
+    // ==================== P2P CONTROLS ====================
+    async function connectP2P(serialNumber) {
+        try {
+            showToast('Đang kết nối P2P đến ' + serialNumber + '...', 'info');
+            const result = await apiPost('/api/p2p/' + serialNumber + '/connect');
+            if (result.status === 200) {
+                showToast('Đã kết nối P2P: ' + serialNumber, 'success');
+            } else {
+                showToast(result.data.error || 'Lỗi kết nối P2P', 'error');
+            }
+            // Wait a moment for connection to stabilize
+            setTimeout(loadAll, 2000);
+        } catch (e) {
+            showToast('Lỗi: ' + e.message, 'error');
+        }
+    }
+
+    async function disconnectP2P(serialNumber) {
+        if (!confirm(`Ngắt kết nối P2P đến "${serialNumber}"?`)) return;
+        try {
+            const result = await apiPost('/api/p2p/' + serialNumber + '/disconnect');
+            if (result.status === 200) {
+                showToast('Đã ngắt kết nối ' + serialNumber, 'success');
+            } else {
+                showToast(result.data.error || 'Lỗi ngắt kết nối', 'error');
+            }
+            await loadAll();
+        } catch (e) {
+            showToast('Lỗi: ' + e.message, 'error');
+        }
+    }
+
+    // ==================== UTILITIES ====================
+    function esc(str) {
+        if (!str) return '';
+        const div = document.createElement('div');
+        div.textContent = str;
+        return div.innerHTML;
+    }
+
+    function copyToClipboard(text) {
+        navigator.clipboard.writeText(text).then(() => {
+            showToast('Đã copy: ' + text, 'info');
+        });
+    }
+
+    function showToast(message, type = 'info') {
+        const container = document.getElementById('toastContainer');
+        const toast = document.createElement('div');
+        toast.className = 'toast ' + type;
+        const icons = { success: '✅', error: '❌', info: 'ℹ️' };
+        toast.innerHTML = `<span>${icons[type] || ''}</span><span>${message}</span>`;
+        container.appendChild(toast);
+        setTimeout(() => {
+            toast.style.opacity = '0';
+            toast.style.transform = 'translateX(60px)';
+            toast.style.transition = 'all 0.3s ease';
+            setTimeout(() => toast.remove(), 300);
+        }, 4000);
+    }
+
+    // ==================== INIT ====================
+    // Initial load
+    loadAll();
+    
+    // Auto-refresh
+    setInterval(loadAll, REFRESH_INTERVAL);
+
+    // Close modal on overlay click
+    document.getElementById('cameraModal').addEventListener('click', (e) => {
+        if (e.target === e.currentTarget) closeModal();
+    });
+
+    // Keyboard shortcuts
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') closeModal();
+    });
+</script>
+
+</body>
+</html>
